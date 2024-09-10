@@ -9,7 +9,17 @@ import (
 	"github.com/nik184/urlshortener/internal/app/storage"
 )
 
-func MainHandler(rw http.ResponseWriter, r *http.Request) {
+var host string
+var port string
+
+func GetMainHadler(h string, p string) func(http.ResponseWriter, *http.Request) {
+	host = h
+	port = p
+
+	return mainHandler
+}
+
+func mainHandler(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		generateURL(rw, r)
@@ -33,7 +43,7 @@ func generateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := "http://localhost:8080/" + storage.Set(string(url))
+	result := host + port + "/" + storage.Set(string(url))
 	rw.WriteHeader(http.StatusCreated)
 	rw.Write([]byte(result))
 }
