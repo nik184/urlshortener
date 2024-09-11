@@ -69,7 +69,7 @@ func testPostReq(t *testing.T, tt testCase) {
 
 	res := w.Result()
 
-	assert.Equal(t, tt.wantCode, res.StatusCode)
+	assert.Equal(t, tt.wantCode, res.StatusCode, "статус ответа на post запрос не соответствует ожидаемому")
 
 	defer res.Body.Close()
 	resBody, _ := io.ReadAll(res.Body)
@@ -99,8 +99,8 @@ func testSuccessfulGetReq(t *testing.T, tt testCase, path string) {
 
 	defer res.Body.Close()
 
-	assert.Equal(t, tt.body, res.Header.Get("Location"))
-	assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
+	require.Equal(t, tt.body, res.Header.Get("Location"), "не удалось получить заголовок Location в ответе")
+	require.Equal(t, http.StatusTemporaryRedirect, res.StatusCode, "статус ответа на get запрос не соответствует ожидаемому")
 }
 
 func TestFailedGetReq(t *testing.T) {
