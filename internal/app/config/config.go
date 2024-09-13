@@ -1,49 +1,56 @@
 package config
 
 import (
-	"errors"
 	"flag"
-	"strconv"
-	"strings"
+	"log"
+
+	"github.com/caarlos0/env/v6"
 )
 
-type Adds struct {
-	Host string
-	Port int
+type Config struct {
+	serverArrd string `env:"SERVER_ADDRESS"`
+	baseURL    string `env:"BASE_URL"`
 }
 
 var (
-	MainAddr  = Adds{Host: "localhost", Port: 8080}
-	RedirAddr = "http://localhost:8080"
+	ServerAddr = "localhost:8080"
+	BaseURL    = "http://localhost:8080"
 )
 
-func (a Adds) String() string {
-	return a.Host + ":" + strconv.Itoa(a.Port)
+func Configure() {
+	parceConf()
+	parceFlag()
 }
 
-func (a Adds) AddrWithOnlyPort() string {
-	return ":" + strconv.Itoa(a.Port)
-}
+func parceConf() {
+	var conf Config
 
-func (a *Adds) Set(s string) error {
-	hp := strings.Split(s, ":")
-	if len(hp) != 2 {
-		return errors.New("тебуемый формат - host:port")
-	}
-	port, err := strconv.Atoi(hp[1])
+	err := env.Parse(&conf)
+
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
-	a.Host = hp[0]
-	a.Port = port
-	return nil
+
+	if conf.serverArrd != "" {
+		ServerAddr = conf.serverArrd
+	}
+
+	if conf.baseURL != "" {
+		BaseURL = conf.baseURL
+	}
 }
 
-func init() {
-	flag.Var(&MainAddr, "a", "основной адрес сервера")
-	flag.StringVar(&RedirAddr, "b", "http://localhost:8080", "адрес результирующего сокращенного url")
-}
+func parceFlag() {
+	a := flag.String("a", "", "основной адрес сервера")
+	b := flag.String("b", "", "адрес результирующего сокращенного url")
 
-func ParceFlags() {
 	flag.Parse()
+
+	if *a != "" {
+		ServerAddr = *a
+	}
+
+	if *b != "" {
+		BaseURL = *b
+	}
 }

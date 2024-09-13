@@ -76,7 +76,7 @@ func testPostReq(t *testing.T, tt testCase) {
 	if tt.wantErr != "" {
 		assert.Contains(t, resBodyStr, tt.wantErr)
 	} else {
-		require.Contains(t, resBodyStr, config.RedirAddr)
+		require.Contains(t, resBodyStr, config.BaseURL)
 		parsedURL, err := url.ParseRequestURI(resBodyStr)
 
 		if err != nil {

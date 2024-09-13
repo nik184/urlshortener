@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	config.ParceFlags()
+	config.Configure()
 
 	server.Start()
 }

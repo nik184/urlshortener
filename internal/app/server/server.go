@@ -15,21 +15,5 @@ func Start() {
 	r.Post("/", handlers.GenerateURL)
 	r.Get("/{id}", handlers.RedirectByURLID)
 
-	// if (config.MainAddr.Port != config.RedirAddr.Port) || (config.MainAddr.Host != config.RedirAddr.Host) {
-	// 	startMultiserver()
-	// } else {
-	// 	log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r))
-	// }
-
-	log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r))
-
-}
-
-func startMultiserver() {
-	finish := make(chan bool)
-
-	go func() { log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r)) }()
-	// go func() { log.Fatal(http.ListenAndServe(config.RedirAddr.AddrWithOnlyPort(), r)) }()
-
-	<-finish
+	log.Fatal(http.ListenAndServe(config.ServerAddr, r))
 }

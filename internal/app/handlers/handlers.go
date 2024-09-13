@@ -28,7 +28,7 @@ func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := config.RedirAddr + "/" + storage.Set(string(url))
+	result := config.BaseURL + "/" + storage.Set(string(url))
 	rw.WriteHeader(http.StatusCreated)
 	rw.Write([]byte(result))
 }
