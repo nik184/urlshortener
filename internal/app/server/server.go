@@ -5,17 +5,31 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/nik184/urlshortener/internal/app/handlers"
 )
 
-const Host = "http://localhost"
-const Port = ":8080"
+var r = chi.NewRouter()
 
 func Start() {
-	r := chi.NewRouter()
+	r.Post("/", handlers.GenerateURL)
+	r.Get("/{id}", handlers.RedirectByURLID)
 
-	r.Post("/", handlers.GetMainHadler(Host, Port))
-	r.Get("/{id}", handlers.GetMainHadler(Host, Port))
+	// if (config.MainAddr.Port != config.RedirAddr.Port) || (config.MainAddr.Host != config.RedirAddr.Host) {
+	// 	startMultiserver()
+	// } else {
+	// 	log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r))
+	// }
 
-	log.Fatal(http.ListenAndServe(Port, r))
+	log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r))
+
+}
+
+func startMultiserver() {
+	finish := make(chan bool)
+
+	go func() { log.Fatal(http.ListenAndServe(config.MainAddr.AddrWithOnlyPort(), r)) }()
+	// go func() { log.Fatal(http.ListenAndServe(config.RedirAddr.AddrWithOnlyPort(), r)) }()
+
+	<-finish
 }

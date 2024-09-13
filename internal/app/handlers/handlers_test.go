@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,9 +19,6 @@ type testCase struct {
 	wantErr  string
 	wantCode int
 }
-
-const Host = "http://localhost"
-const Port = ":8080"
 
 func TestMainHandler(t *testing.T) {
 	tests := []testCase{
@@ -64,7 +62,7 @@ func testPostReq(t *testing.T, tt testCase) {
 	body := bytes.NewBuffer([]byte(tt.body))
 	request := httptest.NewRequest(http.MethodPost, "/", body)
 	w := httptest.NewRecorder()
-	h := http.HandlerFunc(GetMainHadler(Host, Port))
+	h := http.HandlerFunc(GenerateURL)
 	h(w, request)
 
 	res := w.Result()
@@ -78,7 +76,7 @@ func testPostReq(t *testing.T, tt testCase) {
 	if tt.wantErr != "" {
 		assert.Contains(t, resBodyStr, tt.wantErr)
 	} else {
-		require.Contains(t, resBodyStr, Host)
+		require.Contains(t, resBodyStr, config.RedirAddr)
 		parsedURL, err := url.ParseRequestURI(resBodyStr)
 
 		if err != nil {
@@ -92,7 +90,7 @@ func testPostReq(t *testing.T, tt testCase) {
 func testSuccessfulGetReq(t *testing.T, tt testCase, path string) {
 	request := httptest.NewRequest(http.MethodGet, path, nil)
 	w := httptest.NewRecorder()
-	h := http.HandlerFunc(GetMainHadler(Host, Port))
+	h := http.HandlerFunc(RedirectByURLID)
 	h(w, request)
 
 	res := w.Result()
@@ -106,7 +104,7 @@ func testSuccessfulGetReq(t *testing.T, tt testCase, path string) {
 func TestFailedGetReq(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/wrongID", nil)
 	w := httptest.NewRecorder()
-	h := http.HandlerFunc(GetMainHadler(Host, Port))
+	h := http.HandlerFunc(RedirectByURLID)
 	h(w, request)
 
 	res := w.Result()
