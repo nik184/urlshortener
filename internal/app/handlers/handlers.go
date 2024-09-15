@@ -12,7 +12,7 @@ import (
 
 func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(rw, "bad request!", http.StatusBadRequest)
+		http.Error(rw, "method not allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -41,13 +41,12 @@ func isURLValid(u string) bool {
 
 func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(rw, "bad request!", http.StatusBadRequest)
+		http.Error(rw, "method not allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := strings.TrimLeft(r.URL.Path, "/")
 	url, exists := storage.Get(id)
-
 	if !exists {
 		http.Error(rw, "wrong id was received!", http.StatusNotFound)
 		return
