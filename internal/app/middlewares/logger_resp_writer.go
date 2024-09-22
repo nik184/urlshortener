@@ -8,6 +8,7 @@ type (
 	responceData struct {
 		code int
 		size int
+		body string
 	}
 
 	loggerRespWriter struct {
@@ -19,6 +20,7 @@ type (
 func (r *loggerRespWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.data.size += size
+	r.data.body += string(b)
 	return size, err
 }
 

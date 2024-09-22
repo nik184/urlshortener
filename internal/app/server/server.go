@@ -18,7 +18,7 @@ func Start() {
 	r.Post("/", handlers.GenerateURL)
 	r.Get("/{id}", handlers.RedirectByURLID)
 
-	r.Post("/api/shorten", handlers.ApiGenerateURL)
+	r.Post("/api/shorten", handlers.APIGenerateURL)
 
 	log.Fatal(http.ListenAndServe(config.ServerAddr, r))
 }

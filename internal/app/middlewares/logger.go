@@ -38,6 +38,7 @@ func Logger(next http.Handler) http.Handler {
 			"resp |",
 			"size:", lw.data.size,
 			"code:", lw.data.code,
+			"body:", lw.data.body,
 			"dur:", dur,
 		)
 	})
