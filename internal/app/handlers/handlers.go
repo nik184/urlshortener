@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -9,6 +10,50 @@ import (
 	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/nik184/urlshortener/internal/app/storage"
 )
+
+func ApiGenerateURL(rw http.ResponseWriter, r *http.Request) {
+
+	type Req struct {
+		Url string `json:"url"`
+	}
+
+	type Resp struct {
+		Result string `json:"result"`
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(rw, "method not allowed!", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(rw, "cannot read payload!", http.StatusBadRequest)
+		return
+	}
+
+	req := Req{}
+	decodeErr := json.Unmarshal(body, &req)
+	if decodeErr != nil {
+		http.Error(rw, "cannot decode json!", http.StatusBadRequest)
+	}
+
+	if !isURLValid(req.Url) {
+		http.Error(rw, "incorrect url was received!", http.StatusBadRequest)
+		return
+	}
+
+	result := config.BaseURL + "/" + storage.Set(req.Url)
+
+	resp := Resp{Result: result}
+	encodedResp, encodeErr := json.Marshal(resp)
+	if encodeErr != nil {
+		http.Error(rw, "cannot encode response!", http.StatusInternalServerError)
+	}
+
+	rw.WriteHeader(http.StatusCreated)
+	rw.Write(encodedResp)
+}
 
 func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
