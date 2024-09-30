@@ -4,16 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/nik184/urlshortener/internal/app/logger"
 )
 
 func Logger(next http.Handler) http.Handler {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	sugar := logger.Sugar()
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		starttime := time.Now()
 		uri := r.URL
@@ -27,14 +21,14 @@ func Logger(next http.Handler) http.Handler {
 		next.ServeHTTP(lw, r)
 
 		dur := time.Since(starttime)
-		sugar.Infoln(
+		logger.Zl.Infoln(
 			"req |",
 			"uri:", uri,
 			"meth:", meth,
 			"dur:", dur,
 		)
 
-		sugar.Infoln(
+		logger.Zl.Infoln(
 			"resp |",
 			"size:", lw.data.size,
 			"code:", lw.data.code,
