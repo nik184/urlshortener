@@ -43,7 +43,13 @@ func APIGenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := config.BaseURL + "/" + storage.Set(req.URL)
+	hash, err := storage.Set(string(req.URL))
+	if err != nil {
+		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
+		return
+	}
+
+	result := config.BaseURL + "/" + hash
 	if !strings.Contains(config.BaseURL, "") {
 		result = "http://" + result
 	}
@@ -77,7 +83,13 @@ func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := config.BaseURL + "/" + storage.Set(string(url))
+	hash, err := storage.Set(string(url))
+	if err != nil {
+		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
+		return
+	}
+
+	result := config.BaseURL + "/" + hash
 	if !strings.Contains(config.BaseURL, "") {
 		result = "http://" + result
 	}

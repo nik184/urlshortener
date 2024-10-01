@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/nik184/urlshortener/internal/app/config"
+	"github.com/nik184/urlshortener/internal/app/logger"
 )
 
 type URLStorage map[string]string
@@ -24,7 +25,7 @@ func InitStorage() {
 	}
 }
 
-func Set(url string) (encode string) {
+func Set(url string) (encode string, err error) {
 	if storage == nil {
 		InitStorage()
 	}
@@ -32,8 +33,14 @@ func Set(url string) (encode string) {
 	encode = randStringBytes(12)
 	storage[encode] = url
 
-	if err := SaveToStorage(url, encode); err != nil {
-		panic(err)
+	err = SaveToStorage(url, encode)
+	if err != nil {
+		logger.Zl.Errorln("save to storage |",
+			"url:", url,
+			"encode:", encode,
+			"file:", config.FileStoragePath,
+			"error:", err.Error(),
+		)
 	}
 
 	return

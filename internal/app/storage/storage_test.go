@@ -15,7 +15,7 @@ func TestSetAndGet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt, func(t *testing.T) {
-			hash := Set(tt)
+			hash, _ := Set(tt)
 			url, success := Get(hash)
 
 			assert.True(t, success)
@@ -96,7 +96,7 @@ func TestFewStorages(t *testing.T) {
 		t.Run(tt.url, func(t *testing.T) {
 			config.FileStoragePath = tt.file
 
-			hash := Set(tt.url)
+			hash, _ := Set(tt.url)
 
 			if _, err := os.Stat(tt.file); err != nil {
 				panic("file was not created")
