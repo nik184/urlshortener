@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,15 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testCase struct {
-	name     string
-	body     string
-	wantErr  string
-	wantCode int
-}
-
-func TestMainHandler(t *testing.T) {
-	tests := []testCase{
+func getTestCases() []testCase {
+	return []testCase{
 		{
 			name:     "success shorten 1",
 			body:     "http://abcd.net",
@@ -50,41 +45,49 @@ func TestMainHandler(t *testing.T) {
 			wantCode: http.StatusBadRequest,
 		},
 	}
+}
+
+type tc interface {
+	getResult(t *testing.T, w httptest.ResponseRecorder) *http.Response
+	parceResp(res http.Response) string
+	testPostResp(t *testing.T, resBodyStr string)
+	prepareBody() io.Reader
+	getWriter() *httptest.ResponseRecorder
+	getHandler() func(http.ResponseWriter, *http.Request)
+}
+
+func TestApiShortenRedirectPipeline(t *testing.T) {
+	tests := getTestCases()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testPostReq(t, tt)
+			test(t, tt)
 		})
+
+		t.Run(tt.name+" api", func(t *testing.T) {
+			apiTt := apiTestCase{testCase: tt}
+			test(t, apiTt)
+		})
+
+		// t.Run(tt.name, func(t *testing.T) {
+		// 	cTt := CompressionTestCase{testCase: tt}
+		// 	test(t, cTt)
+		// })
 	}
 }
 
-func testPostReq(t *testing.T, tt testCase) {
-	body := bytes.NewBuffer([]byte(tt.body))
+func test(t *testing.T, tt tc) {
+	body := tt.prepareBody()
 	request := httptest.NewRequest(http.MethodPost, "/", body)
-	w := httptest.NewRecorder()
-	h := http.HandlerFunc(GenerateURL)
+	w := tt.getWriter()
+	h := tt.getHandler()
 	h(w, request)
-
-	res := w.Result()
-
-	assert.Equal(t, tt.wantCode, res.StatusCode, "статус ответа на post запрос не соответствует ожидаемому")
+	res := tt.getResult(t, *w)
 
 	defer res.Body.Close()
-	resBody, _ := io.ReadAll(res.Body)
-	resBodyStr := string(resBody)
+	resBodyStr := tt.parceResp(*res)
 
-	if tt.wantErr != "" {
-		assert.Contains(t, resBodyStr, tt.wantErr)
-	} else {
-		require.Contains(t, resBodyStr, config.BaseURL)
-		parsedURL, err := url.ParseRequestURI(resBodyStr)
-
-		if err != nil {
-			assert.Fail(t, err.Error())
-		}
-
-		testSuccessfulGetReq(t, tt, parsedURL.Path)
-	}
+	tt.testPostResp(t, resBodyStr)
 }
 
 func testSuccessfulGetReq(t *testing.T, tt testCase, path string) {
@@ -101,6 +104,81 @@ func testSuccessfulGetReq(t *testing.T, tt testCase, path string) {
 	require.Equal(t, http.StatusTemporaryRedirect, res.StatusCode, "статус ответа на get запрос не соответствует ожидаемому")
 }
 
+type testCase struct {
+	name     string
+	body     string
+	wantErr  string
+	wantCode int
+}
+
+func (tt testCase) getWriter() *httptest.ResponseRecorder {
+	return httptest.NewRecorder()
+}
+
+func (tt testCase) getHandler() func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(GenerateURL)
+}
+
+func (tt testCase) prepareBody() io.Reader {
+	return bytes.NewBuffer([]byte(tt.body))
+}
+
+func (tt testCase) getResult(t *testing.T, w httptest.ResponseRecorder) *http.Response {
+	res := w.Result()
+	assert.Equal(t, tt.wantCode, res.StatusCode, "статус ответа на post запрос не соответствует ожидаемому")
+
+	return res
+}
+
+func (tt testCase) parceResp(res http.Response) string {
+	resBody, _ := io.ReadAll(res.Body)
+	resBodyStr := string(resBody)
+
+	return resBodyStr
+}
+
+func (tt testCase) testPostResp(t *testing.T, resBodyStr string) {
+	if tt.wantErr != "" {
+		assert.Contains(t, resBodyStr, tt.wantErr)
+	} else {
+		require.Contains(t, resBodyStr, config.BaseURL)
+		parsedURL, err := url.ParseRequestURI(resBodyStr)
+
+		if err != nil {
+			assert.Fail(t, err.Error())
+		}
+
+		testSuccessfulGetReq(t, tt, parsedURL.Path)
+	}
+}
+
+type apiTestCase struct {
+	testCase
+}
+
+func (tt apiTestCase) prepareBody() io.Reader {
+	req := Req{URL: tt.body}
+	jsonBody, _ := json.Marshal(req)
+	body := bytes.NewBuffer(jsonBody)
+
+	return body
+}
+
+func (tt apiTestCase) getHandler() func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(APIGenerateURL)
+}
+
+func (tt apiTestCase) parceResp(res http.Response) string {
+	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
+		resp := Resp{}
+		resBody, _ := io.ReadAll(res.Body)
+		json.Unmarshal(resBody, &resp)
+		return resp.Result
+	} else {
+		return tt.testCase.parceResp(res)
+	}
+}
+
 func TestFailedGetReq(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/wrongID", nil)
 	w := httptest.NewRecorder()
@@ -115,4 +193,35 @@ func TestFailedGetReq(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	assert.Contains(t, resBodyStr, "wrong id was received!")
+}
+
+type CompressionTestCase struct {
+	testCase
+}
+
+func (tt CompressionTestCase) getWriter() *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Accept-Encoding", "gzip")
+
+	return w
+}
+
+func (tt CompressionTestCase) prepareBody() io.Reader {
+	var b bytes.Buffer
+
+	w := gzip.NewWriter(&b)
+
+	_, err := w.Write([]byte(tt.body))
+	if err != nil {
+		panic("AAA!!!")
+	}
+
+	err = w.Close()
+	if err != nil {
+		panic("AAA!!!")
+	}
+
+	return bytes.NewBuffer(b.Bytes())
 }
