@@ -43,7 +43,7 @@ func APIGenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := storage.Set(string(req.URL))
+	hash, err := storage.Stor().Set(string(req.URL))
 	if err != nil {
 		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
 		return
@@ -83,7 +83,7 @@ func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := storage.Set(string(url))
+	hash, err := storage.Stor().Set(string(url))
 	if err != nil {
 		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
 		return
@@ -129,9 +129,9 @@ func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strings.TrimLeft(r.URL.Path, "/")
-	url, exists := storage.Get(id)
-	if !exists {
-		http.Error(rw, "wrong id was received!", http.StatusNotFound)
+	url, err := storage.Stor().Get(id)
+	if err != nil {
+		http.Error(rw, "cannot find url by id", http.StatusNotFound)
 		return
 	}
 
