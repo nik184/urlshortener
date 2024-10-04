@@ -18,6 +18,7 @@ var (
 	ServerAddr      = "localhost:8080"
 	BaseURL         = "http://localhost:8080"
 	FileStoragePath = "storage.tmpstorage"
+	StorageDriver   = "file"
 )
 
 func Configure() {
