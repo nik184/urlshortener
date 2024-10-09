@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/nik184/urlshortener/internal/app/config"
+	"github.com/nik184/urlshortener/internal/app/database"
 	"github.com/nik184/urlshortener/internal/app/storage"
 )
 
@@ -43,9 +44,9 @@ func APIGenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := storage.Set(string(req.URL))
+	hash, err := storage.Stor().Set(string(req.URL))
 	if err != nil {
-		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
+		http.Error(rw, "incorrect url was received!", http.StatusBadRequest)
 		return
 	}
 
@@ -83,7 +84,7 @@ func GenerateURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := storage.Set(string(url))
+	hash, err := storage.Stor().Set(string(url))
 	if err != nil {
 		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
 		return
@@ -129,12 +130,23 @@ func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strings.TrimLeft(r.URL.Path, "/")
-	url, exists := storage.Get(id)
-	if !exists {
-		http.Error(rw, "wrong id was received!", http.StatusNotFound)
+	url, err := storage.Stor().Get(id)
+	if err != nil {
+		http.Error(rw, "cannot find url by id", http.StatusNotFound)
 		return
 	}
 
 	rw.Header().Add("Location", url)
 	rw.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func Ping(rw http.ResponseWriter, r *http.Request) {
+	database.ConnectIfNeeded()
+
+	if !database.IsConnected() {
+		http.Error(rw, "cannot connect to database", http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
 }

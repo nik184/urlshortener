@@ -8,25 +8,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSetAndGet(t *testing.T) {
+func TestStorages(t *testing.T) {
+	mapStor := NewMapStorage()
+	fileStor, _ := NewFileStorage()
+
+	t.Run("map storage test", func(t *testing.T) {
+		testSetAndGet(t, &mapStor)
+		testGetNonexists(t, &mapStor)
+	})
+
+	t.Run("file storage test", func(t *testing.T) {
+		testSetAndGet(t, &fileStor)
+		testGetNonexists(t, &fileStor)
+		testFewFileStorages(t, &fileStor)
+	})
+}
+
+func testSetAndGet(t *testing.T, stor stor) {
 	tests := []string{
 		"one", "two", "three",
 	}
 
 	for _, tt := range tests {
 		t.Run(tt, func(t *testing.T) {
-			hash, _ := Set(tt)
-			url, success := Get(hash)
+			hash, setErr := stor.Set(tt)
+			url, getErr := stor.Get(hash)
 
-			assert.True(t, success)
+			assert.Nil(t, setErr)
+			assert.Nil(t, getErr)
 			assert.Equal(t, url, tt)
 		})
 	}
 }
 
-func TestGetNonexists(t *testing.T) {
-	url, success := Get("wrong_hash")
-	assert.False(t, success)
+func testGetNonexists(t *testing.T, stor stor) {
+	url, err := stor.Get("wrong_hash")
+	assert.NotNil(t, err)
 	assert.Empty(t, url)
 }
 
@@ -41,7 +58,7 @@ type ptc struct {
 	hash string
 }
 
-func TestFewStorages(t *testing.T) {
+func testFewFileStorages(t *testing.T, stor stor) {
 
 	tests := []tc{
 		{
@@ -96,7 +113,7 @@ func TestFewStorages(t *testing.T) {
 		t.Run(tt.url, func(t *testing.T) {
 			config.FileStoragePath = tt.file
 
-			hash, _ := Set(tt.url)
+			hash, _ := stor.Set(tt.url)
 
 			if _, err := os.Stat(tt.file); err != nil {
 				panic("file was not created")
@@ -113,10 +130,10 @@ func TestFewStorages(t *testing.T) {
 			for _, pt := range passedTests {
 				config.FileStoragePath = pt.file
 
-				url, success := Get(pt.hash)
+				url, err := stor.Get(pt.hash)
 
-				assert.True(t, success)
-				assert.Equal(t, url, pt.url)
+				assert.Nil(t, err)
+				assert.Equal(t, pt.url, url)
 			}
 		})
 	}
