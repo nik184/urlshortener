@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/nik184/urlshortener/internal/app/config"
+	"github.com/nik184/urlshortener/internal/app/database"
 	"github.com/nik184/urlshortener/internal/app/storage"
 )
 
@@ -45,7 +46,7 @@ func APIGenerateURL(rw http.ResponseWriter, r *http.Request) {
 
 	hash, err := storage.Stor().Set(string(req.URL))
 	if err != nil {
-		http.Error(rw, "incorrect url was received!", http.StatusInternalServerError)
+		http.Error(rw, "incorrect url was received!", http.StatusBadRequest)
 		return
 	}
 
@@ -137,4 +138,15 @@ func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Add("Location", url)
 	rw.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func Ping(rw http.ResponseWriter, r *http.Request) {
+	database.ConnectIfNeeded()
+
+	if !database.IsConnected() {
+		http.Error(rw, "cannot connect to database", http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
 }

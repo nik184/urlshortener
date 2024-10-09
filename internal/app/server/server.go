@@ -17,6 +17,7 @@ func Start() {
 
 	r.Post("/", handlers.GenerateURL)
 	r.Get("/{id}", handlers.RedirectByURLID)
+	r.Get("/ping", handlers.Ping)
 
 	r.Post("/api/shorten", handlers.APIGenerateURL)
 
