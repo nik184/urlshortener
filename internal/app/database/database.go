@@ -8,14 +8,14 @@ import (
 	"github.com/nik184/urlshortener/internal/app/logger"
 )
 
-var db *sql.DB
+var DB *sql.DB
 
 func Q(q string) (*sql.Rows, error) {
 	if err := ConnectIfNeeded(); err != nil {
 		return nil, err
 	}
 
-	rows, err := db.Query(q)
+	rows, err := DB.Query(q)
 
 	if err != nil {
 		return nil, err
@@ -36,22 +36,22 @@ func connect() error {
 	newConnect, err := sql.Open("pgx", config.DatabaseDSN)
 
 	if err != nil {
-		logger.Zl.Errorln("sql connection error |", err.Error())
+		logger.Zl.Errorln("sql connection error | ", err.Error())
 		return err
 	}
 
-	db = newConnect
+	DB = newConnect
 
 	return nil
 }
 
 func IsConnected() bool {
-	if db == nil {
+	if DB == nil {
 		return false
 	}
 
-	if err := db.Ping(); err != nil {
-		logger.Zl.Errorln("sql connection error |", err.Error())
+	if err := DB.Ping(); err != nil {
+		logger.Zl.Errorln("sql connection error | ", err.Error())
 		return false
 	}
 
@@ -60,7 +60,7 @@ func IsConnected() bool {
 
 func CloseIfConnected() {
 	if IsConnected() {
-		if err := db.Close(); err != nil {
+		if err := DB.Close(); err != nil {
 			logger.Zl.Errorln("sql close conn err | ", err.Error())
 		}
 	}

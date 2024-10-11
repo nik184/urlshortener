@@ -20,7 +20,6 @@ var (
 	BaseURL         = "http://localhost:8080"
 	FileStoragePath = "storage.tmpstorage"
 	DatabaseDSN     = "postgres://urlshortener:urlshortener@localhost:5433/urlshortener"
-	StorageDriver   = "file"
 )
 
 func Configure() {
@@ -33,7 +32,7 @@ func parceConf() {
 
 	err := env.Parse(&conf)
 
-	logger.Zl.Infoln("env |", conf)
+	logger.Zl.Infoln("env | ", conf)
 
 	if err != nil {
 		log.Fatal(err)
@@ -65,7 +64,7 @@ func parceFlag() {
 	flag.Parse()
 
 	logger.Zl.Infoln(
-		"flags |",
+		"flags | ",
 		"a: ", *a,
 		"b: ", *b,
 		"f: ", *f,

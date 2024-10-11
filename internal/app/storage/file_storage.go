@@ -3,6 +3,7 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,10 +23,22 @@ type ShortenURLRow struct {
 	OriginalURL string `json:"original_url"`
 }
 
-func NewFileStorage() (FileStorage, error) {
+func NewFileStorage() (*FileStorage, error) {
+	if config.FileStoragePath == "" {
+		return nil, errors.New("file storage credantials was not given")
+	}
+
+	if err := createStorageIfNotExisits(); err != nil {
+		return nil, err
+	}
+
+	if err := checkFile(); err != nil {
+		return nil, err
+	}
+
 	s := FileStorage{}
 
-	return s, nil
+	return &s, nil
 }
 
 func (s *FileStorage) Set(url string) (encode string, err error) {
@@ -33,7 +46,7 @@ func (s *FileStorage) Set(url string) (encode string, err error) {
 
 	err = SaveToStorage(url, encode)
 	if err != nil {
-		logger.Zl.Errorln("save to storage |",
+		logger.Zl.Errorln("save to storage | ",
 			"url:", url,
 			"encode:", encode,
 			"file:", config.FileStoragePath,
@@ -44,7 +57,7 @@ func (s *FileStorage) Set(url string) (encode string, err error) {
 	return
 }
 
-func (s *FileStorage) Get(id string) (string, error) {
+func (s *FileStorage) Get(encode string) (string, error) {
 	file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return "", err
@@ -70,7 +83,7 @@ func (s *FileStorage) Get(id string) (string, error) {
 			return "", err
 		}
 
-		if event.ShortenURL == id {
+		if event.ShortenURL == encode {
 			return event.OriginalURL, nil
 		}
 	}
@@ -119,6 +132,20 @@ func SaveToStorage(url string, enc string) error {
 func createStorageIfNotExisits() error {
 	if mkdirErr := os.MkdirAll(filepath.Dir(config.FileStoragePath), 0666); mkdirErr != nil {
 		return mkdirErr
+	}
+
+	return nil
+}
+
+func checkFile() error {
+	_, err := os.OpenFile(config.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(config.FileStoragePath); err != nil {
+		return err
 	}
 
 	return nil

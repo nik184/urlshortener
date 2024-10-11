@@ -22,14 +22,14 @@ func Logger(next http.Handler) http.Handler {
 
 		dur := time.Since(starttime)
 		logger.Zl.Infoln(
-			"req |",
+			"req | ",
 			"uri:", uri,
 			"meth:", meth,
 			"dur:", dur,
 		)
 
 		logger.Zl.Infoln(
-			"resp |",
+			"resp | ",
 			"size:", lw.data.size,
 			"code:", lw.data.code,
 			"body:", lw.data.body,

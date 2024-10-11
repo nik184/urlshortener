@@ -10,6 +10,7 @@ import (
 
 	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/nik184/urlshortener/internal/app/database"
+	"github.com/nik184/urlshortener/internal/app/logger"
 	"github.com/nik184/urlshortener/internal/app/storage"
 )
 
@@ -40,13 +41,18 @@ func APIGenerateURL(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isURLValid(req.URL) {
+		logger.Zl.Info(
+			"url generator | ",
+			"invalid url received: ", req.URL,
+		)
 		http.Error(rw, "incorrect url was received!", http.StatusBadRequest)
 		return
 	}
 
 	hash, err := storage.Stor().Set(string(req.URL))
 	if err != nil {
-		http.Error(rw, "incorrect url was received!", http.StatusBadRequest)
+		logger.Zl.Infoln("url generator | ", err.Error())
+		http.Error(rw, "failed to save url!", http.StatusBadRequest)
 		return
 	}
 
@@ -132,6 +138,7 @@ func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
 	id := strings.TrimLeft(r.URL.Path, "/")
 	url, err := storage.Stor().Get(id)
 	if err != nil {
+		logger.Zl.Infoln("url redirector | ", err.Error())
 		http.Error(rw, "cannot find url by id", http.StatusNotFound)
 		return
 	}

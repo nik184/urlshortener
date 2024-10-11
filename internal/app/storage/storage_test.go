@@ -13,14 +13,14 @@ func TestStorages(t *testing.T) {
 	fileStor, _ := NewFileStorage()
 
 	t.Run("map storage test", func(t *testing.T) {
-		testSetAndGet(t, &mapStor)
-		testGetNonexists(t, &mapStor)
+		testSetAndGet(t, mapStor)
+		testGetNonexists(t, mapStor)
 	})
 
 	t.Run("file storage test", func(t *testing.T) {
-		testSetAndGet(t, &fileStor)
-		testGetNonexists(t, &fileStor)
-		testFewFileStorages(t, &fileStor)
+		testSetAndGet(t, fileStor)
+		testGetNonexists(t, fileStor)
+		testFewFileStorages(t, fileStor)
 	})
 }
 

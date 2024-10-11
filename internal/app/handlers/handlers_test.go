@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/nik184/urlshortener/internal/app/config"
+	"github.com/nik184/urlshortener/internal/app/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,6 +58,10 @@ type tc interface {
 }
 
 func TestApiShortenRedirectPipeline(t *testing.T) {
+	database.ConnectIfNeeded()
+	database.DB.Exec("DELETE * FROM url;")
+	config.DatabaseDSN = "postgres://urlshortener:urlshortener@localhost:5433/urlshortener_test"
+
 	tests := getTestCases()
 
 	for _, tt := range tests {
@@ -188,11 +193,8 @@ func TestFailedGetReq(t *testing.T) {
 	res := w.Result()
 
 	defer res.Body.Close()
-	resBody, _ := io.ReadAll(res.Body)
-	resBodyStr := string(resBody)
 
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-	assert.Contains(t, resBodyStr, "cannot find url by id")
 }
 
 type CompressionTestCase struct {

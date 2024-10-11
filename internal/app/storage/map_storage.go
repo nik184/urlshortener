@@ -6,12 +6,12 @@ type MapStorage struct {
 	urlStorage map[string]string
 }
 
-func NewMapStorage() MapStorage {
+func NewMapStorage() *MapStorage {
 	s := MapStorage{
 		urlStorage: make(map[string]string),
 	}
 
-	return s
+	return &s
 }
 
 func (s *MapStorage) Set(url string) (string, error) {
@@ -21,8 +21,8 @@ func (s *MapStorage) Set(url string) (string, error) {
 	return encode, nil
 }
 
-func (s *MapStorage) Get(id string) (string, error) {
-	url, exists := s.urlStorage[id]
+func (s *MapStorage) Get(encode string) (string, error) {
+	url, exists := s.urlStorage[encode]
 
 	if !exists {
 		return "", fmt.Errorf("cannot find url by id")
