@@ -34,22 +34,23 @@ func NewDBStorage() (*DBStorage, error) {
 	return &s, nil
 }
 
-func (s *DBStorage) Set(url string) (string, error) {
-	encode := getHash()
+func (s *DBStorage) Set(url, short string) (err error) {
 	newUUID := uuid.NewV4().String()
 
-	res, err := database.DB.Exec(`INSERT INTO url (id, url, encode) VALUES ($1, $2, $3);`, newUUID, url, encode)
+	insertStorten(url, short, database.DB)
+
+	res, err := database.DB.Exec(`INSERT INTO url (id, url, encode) VALUES ($1, $2, $3);`, newUUID, url, short)
 
 	if err != nil {
 		logger.Zl.Infoln("db insert | ", err.Error())
-		return "", err
+		return err
 	}
 
 	id, err := res.RowsAffected()
 
 	if err != nil {
 		logger.Zl.Infoln("db insert | ", err.Error())
-		return "", err
+		return err
 	}
 
 	logger.Zl.Infoln(
@@ -57,7 +58,7 @@ func (s *DBStorage) Set(url string) (string, error) {
 		"rows created: ", id,
 	)
 
-	return encode, nil
+	return nil
 }
 
 func (s *DBStorage) Get(encode string) (string, error) {
@@ -73,6 +74,54 @@ func (s *DBStorage) Get(encode string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func (s *DBStorage) SetBatch(banch []URLWithShort) error {
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, pair := range banch {
+		err := insertStorten(pair.URL, pair.Short, tx)
+
+		if err != nil {
+			err := tx.Rollback()
+			if err != nil {
+				return err
+			}
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return baseSaveBanch(banch)
+}
+
+func insertStorten(url, short string, db database.QueryAble) error {
+	newUUID := uuid.NewV4().String()
+
+	res, err := db.Exec(`INSERT INTO url (id, url, encode) VALUES ($1, $2, $3);`, newUUID, url, short)
+
+	if err != nil {
+		logger.Zl.Infoln("db insert | ", err.Error())
+		return err
+	}
+
+	id, err := res.RowsAffected()
+
+	if err != nil {
+		logger.Zl.Infoln("db insert | ", err.Error())
+		return err
+	}
+
+	logger.Zl.Infoln(
+		"db insert | ",
+		"rows created: ", id,
+	)
+
+	return nil
 }
 
 func prepareDB() error {

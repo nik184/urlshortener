@@ -10,6 +10,13 @@ import (
 
 var DB *sql.DB
 
+type QueryAble interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Prepare(query string) (*sql.Stmt, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
 func Q(q string) (*sql.Rows, error) {
 	if err := ConnectIfNeeded(); err != nil {
 		return nil, err

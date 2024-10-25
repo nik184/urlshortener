@@ -36,13 +36,13 @@ func getTestCases() []testCase {
 		{
 			name:     "incorrect url 1",
 			body:     "http://",
-			wantErr:  "incorrect url was received!",
+			wantErr:  "incorrect url was received",
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "incorrect url 2",
 			body:     "just text",
-			wantErr:  "incorrect url was received!",
+			wantErr:  "incorrect url was received",
 			wantCode: http.StatusBadRequest,
 		},
 	}
@@ -121,7 +121,7 @@ func (tt testCase) getWriter() *httptest.ResponseRecorder {
 }
 
 func (tt testCase) getHandler() func(http.ResponseWriter, *http.Request) {
-	return http.HandlerFunc(GenerateURL)
+	return http.HandlerFunc(ShortURL)
 }
 
 func (tt testCase) prepareBody() io.Reader {
@@ -162,7 +162,7 @@ type apiTestCase struct {
 }
 
 func (tt apiTestCase) prepareBody() io.Reader {
-	req := Req{URL: tt.body}
+	req := URLReq{URL: tt.body}
 	jsonBody, _ := json.Marshal(req)
 	body := bytes.NewBuffer(jsonBody)
 
@@ -170,12 +170,12 @@ func (tt apiTestCase) prepareBody() io.Reader {
 }
 
 func (tt apiTestCase) getHandler() func(http.ResponseWriter, *http.Request) {
-	return http.HandlerFunc(APIGenerateURL)
+	return http.HandlerFunc(APIShortURL)
 }
 
 func (tt apiTestCase) parceResp(res http.Response) string {
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
-		resp := Resp{}
+		resp := URLResp{}
 		resBody, _ := io.ReadAll(res.Body)
 		json.Unmarshal(resBody, &resp)
 		return resp.Result

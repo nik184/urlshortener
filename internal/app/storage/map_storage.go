@@ -14,11 +14,10 @@ func NewMapStorage() *MapStorage {
 	return &s
 }
 
-func (s *MapStorage) Set(url string) (string, error) {
-	encode := getHash()
-	s.urlStorage[encode] = url
+func (s *MapStorage) Set(url, short string) (err error) {
+	s.urlStorage[short] = url
 
-	return encode, nil
+	return nil
 }
 
 func (s *MapStorage) Get(encode string) (string, error) {
@@ -29,4 +28,8 @@ func (s *MapStorage) Get(encode string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func (s *MapStorage) SetBatch(banch []URLWithShort) error {
+	return baseSaveBanch(banch)
 }

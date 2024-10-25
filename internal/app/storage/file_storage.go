@@ -41,14 +41,12 @@ func NewFileStorage() (*FileStorage, error) {
 	return &s, nil
 }
 
-func (s *FileStorage) Set(url string) (encode string, err error) {
-	encode = getHash()
-
-	err = SaveToStorage(url, encode)
+func (s *FileStorage) Set(url, short string) (err error) {
+	err = saveToStorage(url, short)
 	if err != nil {
 		logger.Zl.Errorln("save to storage | ",
 			"url:", url,
-			"encode:", encode,
+			"encode:", short,
 			"file:", config.FileStoragePath,
 			"error:", err.Error(),
 		)
@@ -89,7 +87,11 @@ func (s *FileStorage) Get(encode string) (string, error) {
 	}
 }
 
-func SaveToStorage(url string, enc string) error {
+func (s *FileStorage) SetBatch(banch []URLWithShort) error {
+	return baseSaveBanch(banch)
+}
+
+func saveToStorage(url string, enc string) error {
 	if err := createStorageIfNotExisits(); err != nil {
 		return err
 	}

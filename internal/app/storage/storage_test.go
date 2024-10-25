@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nik184/urlshortener/internal/app/config"
+	"github.com/nik184/urlshortener/internal/app/urlservice"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,8 @@ func testSetAndGet(t *testing.T, stor stor) {
 
 	for _, tt := range tests {
 		t.Run(tt, func(t *testing.T) {
-			hash, setErr := stor.Set(tt)
+			hash := urlservice.GenShort()
+			setErr := stor.Set(tt, hash)
 			url, getErr := stor.Get(hash)
 
 			assert.Nil(t, setErr)
@@ -113,7 +115,8 @@ func testFewFileStorages(t *testing.T, stor stor) {
 		t.Run(tt.url, func(t *testing.T) {
 			config.FileStoragePath = tt.file
 
-			hash, _ := stor.Set(tt.url)
+			hash := urlservice.GenShort()
+			stor.Set(tt.url, hash)
 
 			if _, err := os.Stat(tt.file); err != nil {
 				panic("file was not created")

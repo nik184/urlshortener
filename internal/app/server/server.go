@@ -15,11 +15,12 @@ var r = chi.NewRouter()
 func Start() {
 	r.Use(middlewares.Logger)
 
-	r.Post("/", handlers.GenerateURL)
+	r.Post("/", handlers.ShortURL)
 	r.Get("/{id}", handlers.RedirectByURLID)
 	r.Get("/ping", handlers.Ping)
 
-	r.Post("/api/shorten", handlers.APIGenerateURL)
+	r.Post("/api/shorten", handlers.APIShortURL)
+	r.Post("/api/shorten/batch", handlers.APIProcessBatchOfURLs)
 
 	log.Fatal(http.ListenAndServe(config.ServerAddr, r))
 }

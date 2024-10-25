@@ -6,4 +6,4 @@ shortener_compile:
 	go build -o cmd/shortener/shortener cmd/shortener/*.go
 
 run:
-	go run cmd/shortener/main.go -a 'localhost:1234'
+	go run cmd/shortener/main.go -a 'localhost:1234' -b 'http://localhost:1234'
