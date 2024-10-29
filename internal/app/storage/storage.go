@@ -8,5 +8,6 @@ type URLWithShort struct {
 type stor interface {
 	SetBatch(banch []URLWithShort) error
 	Set(url, short string) error
-	Get(id string) (string, error)
+	GetByShort(short string) (string, error)
+	GetByURL(url string) (string, error)
 }

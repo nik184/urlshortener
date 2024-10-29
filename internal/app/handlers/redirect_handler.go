@@ -8,8 +8,8 @@ import (
 )
 
 func RedirectByURLID(rw http.ResponseWriter, r *http.Request) {
-	id := strings.TrimLeft(r.URL.Path, "/")
-	url, err := storage.Stor().Get(id)
+	hash := strings.TrimLeft(r.URL.Path, "/")
+	url, err := storage.Stor().GetByShort(hash)
 	if err != nil {
 		http.Error(rw, "cannot find url by id", http.StatusNotFound)
 		return

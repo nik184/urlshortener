@@ -55,7 +55,7 @@ func (s *FileStorage) Set(url, short string) (err error) {
 	return
 }
 
-func (s *FileStorage) Get(encode string) (string, error) {
+func (s *FileStorage) GetByShort(short string) (string, error) {
 	file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return "", err
@@ -81,7 +81,39 @@ func (s *FileStorage) Get(encode string) (string, error) {
 			return "", err
 		}
 
-		if event.ShortenURL == encode {
+		if event.ShortenURL == short {
+			return event.OriginalURL, nil
+		}
+	}
+}
+
+func (s *FileStorage) GetByURL(url string) (string, error) {
+	file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return "", err
+	}
+
+	reader := bufio.NewReader(file)
+
+	defer file.Close()
+
+	for {
+		data, err := reader.ReadBytes('\n')
+
+		if err == io.EOF {
+			return "", err
+		}
+
+		if err != nil {
+			return "", err
+		}
+
+		event := ShortenURLRow{}
+		if err = json.Unmarshal(data, &event); err != nil {
+			return "", err
+		}
+
+		if event.OriginalURL == url {
 			return event.OriginalURL, nil
 		}
 	}

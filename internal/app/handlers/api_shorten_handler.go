@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nik184/urlshortener/internal/app/storage"
 	"github.com/nik184/urlshortener/internal/app/urlservice"
 )
@@ -18,13 +20,44 @@ type URLResp struct {
 }
 
 func APIShortURL(rw http.ResponseWriter, r *http.Request) {
-	hash, err := parceURLReq(rw, r)
+	status := http.StatusCreated
+
+	body, err := readBody(rw, r)
+	if err != nil {
+		return
+	}
+
+	req := URLReq{}
+	if err = json.Unmarshal(body, &req); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !isURLValid(req.URL) {
+		http.Error(rw, "incorrect url was received", http.StatusBadRequest)
+		return
+	}
+
+	short := urlservice.GenShort()
+	err = storage.Stor().Set(string(req.URL), short)
+
+	var pgErr *pgconn.PgError
+	if ok := errors.As(err, &pgErr); ok && pgErr.Code == pgerrcode.UniqueViolation {
+		short, err = storage.Stor().GetByURL(req.URL)
+
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		} else {
+			status = http.StatusConflict
+		}
+	}
+
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	result := concatPathToAddr(hash)
+	result := concatPathToAddr(short)
 
 	resp := URLResp{Result: result}
 	encodedResp, encodeErr := json.Marshal(resp)
@@ -34,28 +67,6 @@ func APIShortURL(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusCreated)
+	rw.WriteHeader(status)
 	rw.Write(encodedResp)
-}
-
-func parceURLReq(rw http.ResponseWriter, r *http.Request) (hash string, err error) {
-	body, err := readBody(rw, r)
-	if err != nil {
-		return
-	}
-
-	req := URLReq{}
-	if err = json.Unmarshal(body, &req); err != nil {
-		return
-	}
-
-	if !isURLValid(req.URL) {
-		err = errors.New("incorrect url was received")
-		return
-	}
-
-	hash = urlservice.GenShort()
-	err = storage.Stor().Set(string(req.URL), hash)
-
-	return
 }

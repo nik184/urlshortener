@@ -35,34 +35,11 @@ func NewDBStorage() (*DBStorage, error) {
 }
 
 func (s *DBStorage) Set(url, short string) (err error) {
-	newUUID := uuid.NewV4().String()
-
-	insertStorten(url, short, database.DB)
-
-	res, err := database.DB.Exec(`INSERT INTO url (id, url, encode) VALUES ($1, $2, $3);`, newUUID, url, short)
-
-	if err != nil {
-		logger.Zl.Infoln("db insert | ", err.Error())
-		return err
-	}
-
-	id, err := res.RowsAffected()
-
-	if err != nil {
-		logger.Zl.Infoln("db insert | ", err.Error())
-		return err
-	}
-
-	logger.Zl.Infoln(
-		"db insert | ",
-		"rows created: ", id,
-	)
-
-	return nil
+	return insertStorten(url, short, database.DB)
 }
 
-func (s *DBStorage) Get(encode string) (string, error) {
-	row := database.DB.QueryRow(`SELECT url FROM url WHERE encode = $1;`, encode)
+func (s *DBStorage) GetByShort(short string) (string, error) {
+	row := database.DB.QueryRow(`SELECT url FROM url WHERE encode = $1;`, short)
 
 	if row.Err() != nil {
 		return "", row.Err()
@@ -74,6 +51,21 @@ func (s *DBStorage) Get(encode string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func (s *DBStorage) GetByURL(url string) (string, error) {
+	row := database.DB.QueryRow(`SELECT encode FROM url WHERE url = $1;`, url)
+
+	if row.Err() != nil {
+		return "", row.Err()
+	}
+
+	var short string
+	if err := row.Scan(&short); err != nil {
+		return "", err
+	}
+
+	return short, nil
 }
 
 func (s *DBStorage) SetBatch(banch []URLWithShort) error {
@@ -96,7 +88,7 @@ func (s *DBStorage) SetBatch(banch []URLWithShort) error {
 
 	tx.Commit()
 
-	return baseSaveBanch(banch)
+	return nil
 }
 
 func insertStorten(url, short string, db database.QueryAble) error {
@@ -145,7 +137,7 @@ func createTable() error {
 	_, err := database.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS url (
 			id		VARCHAR(255) NOT NULL PRIMARY KEY,
-			url		VARCHAR(255) NOT NULL,
+			url		VARCHAR(255) NOT NULL UNIQUE,
 			encode	VARCHAR(255) NOT NULL
 		);
 	`)

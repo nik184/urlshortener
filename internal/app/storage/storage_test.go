@@ -34,7 +34,7 @@ func testSetAndGet(t *testing.T, stor stor) {
 		t.Run(tt, func(t *testing.T) {
 			hash := urlservice.GenShort()
 			setErr := stor.Set(tt, hash)
-			url, getErr := stor.Get(hash)
+			url, getErr := stor.GetByShort(hash)
 
 			assert.Nil(t, setErr)
 			assert.Nil(t, getErr)
@@ -44,7 +44,7 @@ func testSetAndGet(t *testing.T, stor stor) {
 }
 
 func testGetNonexists(t *testing.T, stor stor) {
-	url, err := stor.Get("wrong_hash")
+	url, err := stor.GetByShort("wrong_hash")
 	assert.NotNil(t, err)
 	assert.Empty(t, url)
 }
@@ -133,7 +133,7 @@ func testFewFileStorages(t *testing.T, stor stor) {
 			for _, pt := range passedTests {
 				config.FileStoragePath = pt.file
 
-				url, err := stor.Get(pt.hash)
+				url, err := stor.GetByShort(pt.hash)
 
 				assert.Nil(t, err)
 				assert.Equal(t, pt.url, url)

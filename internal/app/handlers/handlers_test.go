@@ -59,8 +59,8 @@ type tc interface {
 
 func TestApiShortenRedirectPipeline(t *testing.T) {
 	database.ConnectIfNeeded()
-	database.DB.Exec("DELETE * FROM url;")
 	config.DatabaseDSN = "postgres://urlshortener:urlshortener@localhost:5433/urlshortener_test"
+	database.DB.Exec("DELETE FROM url;")
 
 	tests := getTestCases()
 
@@ -69,10 +69,14 @@ func TestApiShortenRedirectPipeline(t *testing.T) {
 			test(t, tt)
 		})
 
+		database.DB.Exec("DELETE FROM url;")
+
 		t.Run(tt.name+" api", func(t *testing.T) {
 			apiTt := apiTestCase{testCase: tt}
 			test(t, apiTt)
 		})
+
+		database.DB.Exec("DELETE FROM url;")
 
 		// t.Run(tt.name, func(t *testing.T) {
 		// 	cTt := CompressionTestCase{testCase: tt}
