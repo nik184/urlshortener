@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nik184/urlshortener/internal/app/storage"
 	"github.com/nik184/urlshortener/internal/app/urlservice"
 )
@@ -39,22 +37,23 @@ func APIShortURL(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	short := urlservice.GenShort()
-	err = storage.Stor().Set(string(req.URL), short)
 
-	var pgErr *pgconn.PgError
-	if ok := errors.As(err, &pgErr); ok && pgErr.Code == pgerrcode.UniqueViolation {
-		short, err = storage.Stor().GetByURL(req.URL)
+	if err = storage.Stor().Set(string(req.URL), short); err != nil {
+		var notUniqErr *storage.NotUniqErr
+		if ok := errors.As(err, &notUniqErr); ok {
+			row, err := storage.Stor().GetByURL(req.URL)
+			short = row.Short
 
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			} else {
+				status = http.StatusConflict
+			}
 		} else {
-			status = http.StatusConflict
+			http.Error(rw, "failed to save url: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
-	}
-
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
 	}
 
 	result := concatPathToAddr(short)

@@ -48,7 +48,7 @@ func createMapStor() *MapStorage {
 	return NewMapStorage()
 }
 
-func baseSaveBanch(banch []URLWithShort) error {
+func baseSaveBanch(banch []ShortenURLRow) error {
 	for _, pair := range banch {
 		err := s.Set(pair.URL, pair.Short)
 		if err != nil {

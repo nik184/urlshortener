@@ -20,25 +20,32 @@ func (s *MapStorage) Set(url, short string) (err error) {
 	return nil
 }
 
-func (s *MapStorage) GetByShort(short string) (string, error) {
+func (s *MapStorage) GetByShort(short string) (*ShortenURLRow, error) {
 	url, exists := s.urlStorage[short]
 
 	if !exists {
-		return "", fmt.Errorf("cannot find url by id")
+		return nil, fmt.Errorf("cannot find url by id")
 	}
 
-	return url, nil
+	return &ShortenURLRow{
+		URL:   url,
+		Short: short,
+	}, nil
 }
 
-func (s *MapStorage) GetByURL(url string) (string, error) {
-	for k, v := range s.urlStorage {
+func (s *MapStorage) GetByURL(url string) (*ShortenURLRow, error) {
+	for _, v := range s.urlStorage {
 		if v == url {
-			return k, nil
+			return &ShortenURLRow{
+				URL:   url,
+				Short: v,
+			}, nil
 		}
 	}
-	return "", fmt.Errorf("cannot find url by id")
+
+	return nil, fmt.Errorf("cannot find url by id")
 }
 
-func (s *MapStorage) SetBatch(banch []URLWithShort) error {
+func (s *MapStorage) SetBatch(banch []ShortenURLRow) error {
 	return baseSaveBanch(banch)
 }

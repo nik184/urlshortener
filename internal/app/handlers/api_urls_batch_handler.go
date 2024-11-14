@@ -42,19 +42,19 @@ func APIProcessBatchOfURLs(rw http.ResponseWriter, r *http.Request) {
 	rw.Write(encodedResp)
 }
 
-func parceBanchReq(rw http.ResponseWriter, r *http.Request) (resp BanchResp, err error) {
+func parceBanchReq(rw http.ResponseWriter, r *http.Request) (*BanchResp, error) {
 	body, err := readBody(rw, r)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	reqs := BanchReq{}
 	if err = json.Unmarshal(body, &reqs); err != nil {
-		return
+		return nil, err
 	}
 
-	resp = BanchResp{}
-	banch := []storage.URLWithShort{}
+	resp := BanchResp{}
+	banch := []storage.ShortenURLRow{}
 	for _, req := range reqs {
 		logger.Zl.Info(
 			"parce batch | ",
@@ -64,11 +64,11 @@ func parceBanchReq(rw http.ResponseWriter, r *http.Request) (resp BanchResp, err
 
 		if !isURLValid(req.OriginalURL) {
 			err = errors.New("incorrect url was received")
-			return
+			return nil, err
 		}
 
 		hash := urlservice.GenShort()
-		banch = append(banch, storage.URLWithShort{
+		banch = append(banch, storage.ShortenURLRow{
 			URL:   req.OriginalURL,
 			Short: hash,
 		})
@@ -92,5 +92,5 @@ func parceBanchReq(rw http.ResponseWriter, r *http.Request) (resp BanchResp, err
 		}
 	}
 
-	return
+	return &resp, nil
 }

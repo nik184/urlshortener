@@ -3,6 +3,8 @@ package storage
 import (
 	"errors"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/nik184/urlshortener/internal/app/database"
 	"github.com/nik184/urlshortener/internal/app/logger"
@@ -38,37 +40,37 @@ func (s *DBStorage) Set(url, short string) (err error) {
 	return insertStorten(url, short, database.DB)
 }
 
-func (s *DBStorage) GetByShort(short string) (string, error) {
-	row := database.DB.QueryRow(`SELECT url FROM url WHERE encode = $1;`, short)
+func (s *DBStorage) GetByShort(short string) (*ShortenURLRow, error) {
+	row := database.DB.QueryRow(`SELECT id, url, short FROM url WHERE short = $1;`, short)
 
 	if row.Err() != nil {
-		return "", row.Err()
+		return nil, row.Err()
 	}
 
-	var url string
-	if err := row.Scan(&url); err != nil {
-		return "", err
+	var r ShortenURLRow
+	if err := row.Scan(&r.UUID, &r.URL, &r.Short); err != nil {
+		return nil, err
 	}
 
-	return url, nil
+	return &r, nil
 }
 
-func (s *DBStorage) GetByURL(url string) (string, error) {
-	row := database.DB.QueryRow(`SELECT encode FROM url WHERE url = $1;`, url)
+func (s *DBStorage) GetByURL(url string) (*ShortenURLRow, error) {
+	row := database.DB.QueryRow(`SELECT id, url, short FROM url WHERE url = $1;`, url)
 
 	if row.Err() != nil {
-		return "", row.Err()
+		return nil, row.Err()
 	}
 
-	var short string
-	if err := row.Scan(&short); err != nil {
-		return "", err
+	var r ShortenURLRow
+	if err := row.Scan(&r.UUID, &r.URL, &r.Short); err != nil {
+		return nil, err
 	}
 
-	return short, nil
+	return &r, nil
 }
 
-func (s *DBStorage) SetBatch(banch []URLWithShort) error {
+func (s *DBStorage) SetBatch(banch []ShortenURLRow) error {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		return err
@@ -86,15 +88,26 @@ func (s *DBStorage) SetBatch(banch []URLWithShort) error {
 		}
 	}
 
-	tx.Commit()
-
-	return nil
+	return tx.Commit()
 }
 
 func insertStorten(url, short string, db database.QueryAble) error {
 	newUUID := uuid.NewV4().String()
 
-	res, err := db.Exec(`INSERT INTO url (id, url, encode) VALUES ($1, $2, $3);`, newUUID, url, short)
+	res, err := db.Exec(`INSERT INTO url (id, url, short) VALUES ($1, $2, $3);`, newUUID, url, short)
+
+	var pgErr *pgconn.PgError
+
+	if ok := errors.As(err, &pgErr); ok && pgErr.Code == pgerrcode.UniqueViolation {
+		shortenURLRow, getErr := s.GetByURL(url)
+
+		if getErr != nil {
+			logger.Zl.Infoln("db get | ", getErr.Error())
+			return getErr
+		}
+
+		return NewNotUniqErr(pgErr, shortenURLRow)
+	}
 
 	if err != nil {
 		logger.Zl.Infoln("db insert | ", err.Error())
@@ -138,7 +151,7 @@ func createTable() error {
 		CREATE TABLE IF NOT EXISTS url (
 			id		VARCHAR(255) NOT NULL PRIMARY KEY,
 			url		VARCHAR(255) NOT NULL UNIQUE,
-			encode	VARCHAR(255) NOT NULL
+			short	VARCHAR(255) NOT NULL
 		);
 	`)
 

@@ -34,11 +34,11 @@ func testSetAndGet(t *testing.T, stor stor) {
 		t.Run(tt, func(t *testing.T) {
 			hash := urlservice.GenShort()
 			setErr := stor.Set(tt, hash)
-			url, getErr := stor.GetByShort(hash)
+			row, getErr := stor.GetByShort(hash)
 
 			assert.Nil(t, setErr)
 			assert.Nil(t, getErr)
-			assert.Equal(t, url, tt)
+			assert.Equal(t, row.URL, tt)
 		})
 	}
 }
@@ -136,7 +136,7 @@ func testFewFileStorages(t *testing.T, stor stor) {
 				url, err := stor.GetByShort(pt.hash)
 
 				assert.Nil(t, err)
-				assert.Equal(t, pt.url, url)
+				assert.Equal(t, pt.url, url.URL)
 			}
 		})
 	}

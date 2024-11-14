@@ -10,17 +10,12 @@ import (
 
 	"github.com/nik184/urlshortener/internal/app/config"
 	"github.com/nik184/urlshortener/internal/app/logger"
+	"github.com/nik184/urlshortener/internal/app/util"
 
 	uuid "github.com/satori/go.uuid"
 )
 
 type FileStorage struct {
-}
-
-type ShortenURLRow struct {
-	UUID        string `json:"uuid"`
-	ShortenURL  string `json:"shorten_url"`
-	OriginalURL string `json:"original_url"`
 }
 
 func NewFileStorage() (*FileStorage, error) {
@@ -32,7 +27,7 @@ func NewFileStorage() (*FileStorage, error) {
 		return nil, err
 	}
 
-	if err := checkFile(); err != nil {
+	if exists, err := util.FileExists(config.FileStoragePath); err != nil || !exists {
 		return nil, err
 	}
 
@@ -46,7 +41,7 @@ func (s *FileStorage) Set(url, short string) (err error) {
 	if err != nil {
 		logger.Zl.Errorln("save to storage | ",
 			"url:", url,
-			"encode:", short,
+			"short:", short,
 			"file:", config.FileStoragePath,
 			"error:", err.Error(),
 		)
@@ -55,10 +50,10 @@ func (s *FileStorage) Set(url, short string) (err error) {
 	return
 }
 
-func (s *FileStorage) GetByShort(short string) (string, error) {
+func (s *FileStorage) GetByShort(short string) (*ShortenURLRow, error) {
 	file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	reader := bufio.NewReader(file)
@@ -69,28 +64,28 @@ func (s *FileStorage) GetByShort(short string) (string, error) {
 		data, err := reader.ReadBytes('\n')
 
 		if err == io.EOF {
-			return "", err
+			return nil, err
 		}
 
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		event := ShortenURLRow{}
-		if err = json.Unmarshal(data, &event); err != nil {
-			return "", err
+		shortenURLRow := ShortenURLRow{}
+		if err = json.Unmarshal(data, &shortenURLRow); err != nil {
+			return nil, err
 		}
 
-		if event.ShortenURL == short {
-			return event.OriginalURL, nil
+		if shortenURLRow.Short == short {
+			return &shortenURLRow, nil
 		}
 	}
 }
 
-func (s *FileStorage) GetByURL(url string) (string, error) {
+func (s *FileStorage) GetByURL(url string) (*ShortenURLRow, error) {
 	file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	reader := bufio.NewReader(file)
@@ -101,25 +96,25 @@ func (s *FileStorage) GetByURL(url string) (string, error) {
 		data, err := reader.ReadBytes('\n')
 
 		if err == io.EOF {
-			return "", err
+			return nil, err
 		}
 
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		event := ShortenURLRow{}
 		if err = json.Unmarshal(data, &event); err != nil {
-			return "", err
+			return nil, err
 		}
 
-		if event.OriginalURL == url {
-			return event.OriginalURL, nil
+		if event.URL == url {
+			return &event, nil
 		}
 	}
 }
 
-func (s *FileStorage) SetBatch(banch []URLWithShort) error {
+func (s *FileStorage) SetBatch(banch []ShortenURLRow) error {
 	return baseSaveBanch(banch)
 }
 
@@ -137,9 +132,9 @@ func saveToStorage(url string, enc string) error {
 	newUUID := uuid.NewV4().String()
 
 	row := ShortenURLRow{
-		UUID:        newUUID,
-		ShortenURL:  enc,
-		OriginalURL: url,
+		UUID:  newUUID,
+		Short: enc,
+		URL:   url,
 	}
 
 	jsonRaw, encErr := json.Marshal(row)
@@ -171,16 +166,16 @@ func createStorageIfNotExisits() error {
 	return nil
 }
 
-func checkFile() error {
-	_, err := os.OpenFile(config.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+// func checkFile() error {
+// 	_, err := os.OpenFile(config.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 
-	if err != nil {
-		return err
-	}
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if _, err := os.Stat(config.FileStoragePath); err != nil {
-		return err
-	}
+// 	if _, err := os.Stat(config.FileStoragePath); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
